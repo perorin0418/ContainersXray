@@ -4,6 +4,6 @@
              xmlns:local="clr-namespace:ContainersXray"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary Source="/Twining;component/Themes/Generic.xaml"/>
     </Application.Resources>
 </Application>
