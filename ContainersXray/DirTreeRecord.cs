@@ -6,15 +6,15 @@ namespace ContainersXray
 {
     class DirTreeRecord
     {
-        public BitmapImage icon
+        public BitmapImage Icon
         {
             get
             {
                 return new BitmapImage(new Uri("pack://application:,,,/resource/Folder-icon.png"));
             }
         }
-        public string name { get; set; }
-        public string path { get; set; }
-        public ObservableCollection<DirTreeRecord> dirs { get; set; } = new ObservableCollection<DirTreeRecord>();
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public ObservableCollection<DirTreeRecord> Dirs { get; set; } = new ObservableCollection<DirTreeRecord>();
     }
 }

@@ -9,11 +9,11 @@ namespace ContainersXray
 {
     class ExplorerRecord
     {
-        public BitmapImage icon
+        public BitmapImage Icon
         {
             get
             {
-                if (permission.StartsWith("d"))
+                if (Permission.StartsWith("d"))
                 {
                     return new BitmapImage(new Uri("pack://application:,,,/resource/Folder-icon.png"));
                 }
@@ -23,11 +23,11 @@ namespace ContainersXray
                 }
             }
         }
-        public string path { get; set; }
-        public string fileName { get; set; }
-        public string size { get; set; }
-        public string updatedAt { get; set; }
-        public string permission { get; set; }
-        public string owner { get; set; }
+        public string Path { get; set; }
+        public string FileName { get; set; }
+        public string Size { get; set; }
+        public string UpdatedAt { get; set; }
+        public string Permission { get; set; }
+        public string Owner { get; set; }
     }
 }

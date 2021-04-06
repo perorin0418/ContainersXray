@@ -2,6 +2,7 @@
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -12,71 +13,75 @@ namespace ContainersXray
 {
     class SshTerminal
     {
-        public static string hostName { get; set; }
-        public static string loginUserName { get; set; }
-        public static string loginPassword { get; set; }
-        public static string execUserName { get; set; }
-        public static string execPassword { get; set; }
-        public static string containerID { get; set; }
-        public static string containerName { get; set; }
-        public static string imageName { get; set; }
-        public static SshClient client { get; set; }
-        public static ShellStream shellStream { get; set; }
+        public static string HostName { get; set; }
+        public static string LoginUserName { get; set; }
+        public static string LoginPassword { get; set; }
+        public static string ExecUserName { get; set; }
+        public static string ExecPassword { get; set; }
+        public static string ContainerID { get; set; }
+        public static string ContainerName { get; set; }
+        public static string ImageName { get; set; }
+        public static SshClient Client { get; set; }
+        public static ShellStream ShellStream { get; set; }
+        public static string DbTempFile { get; set; } 
+        public static string DbPersistentFile = "ContainersXray.db";
 
-        public static bool login()
+        public static bool Login()
         {
             try
             {
-                client = new SshClient(hostName, loginUserName, loginPassword);
-                client.Connect();
+                Client = new SshClient(HostName, LoginUserName, LoginPassword);
+                Client.Connect();
             }
             catch(Exception e)
             {
                 return false;
             }
-            shellStream = client.CreateShellStream("xterm", 5000, 5000, 800, 600, 1024);
+            ShellStream = Client.CreateShellStream("xterm", 5000, 5000, 800, 600, 1024);
             exec("whoami");
-            if (loginUserName != execUserName)
+            if (LoginUserName != ExecUserName)
             {
-                return switchUser();
+                return SwitchUser();
             }
             exec("whoami");
+            DbTempFile = "ContainersXray-" + Guid.NewGuid().ToString() + ".db";
             return true;
         }
 
-        public static void logout()
+        public static void Logout()
         {
-            client.Disconnect();
+            Client.Disconnect();
+            File.Delete(System.Environment.CurrentDirectory + @"\" + DbTempFile);
         }
 
-        public static void containerLogin()
+        public static void ContainerLogin()
         {
-            shellStream.WriteLine("docker exec -it " + containerName + " /bin/sh");
-            string prompt = shellStream.Expect(new Regex(@"[$#>]"));
+            ShellStream.WriteLine("docker exec -it " + ContainerName + " /bin/sh");
+            string prompt = ShellStream.Expect(new Regex(@"[$#>]"));
             Console.WriteLine(prompt);
             exec("whoami");
         }
 
-        public static bool switchUser()
+        public static bool SwitchUser()
         {
-            return switchUser(execUserName, execPassword);
+            return SwitchUser(ExecUserName, ExecPassword);
         }
 
-        public static bool switchUser(string username, string password)
+        public static bool SwitchUser(string username, string password)
         {
             try
             {
-                string prompt = shellStream.Expect(new Regex(@"[$#>]"));
+                string prompt = ShellStream.Expect(new Regex(@"[$#>]"));
                 Console.WriteLine(prompt);
 
-                shellStream.WriteLine("su - " + username);
-                prompt = shellStream.Expect(new Regex(@"[:]"));
+                ShellStream.WriteLine("su - " + username);
+                prompt = ShellStream.Expect(new Regex(@"[:]"));
                 Console.WriteLine(prompt);
 
                 if (prompt.Contains(":"))
                 {
-                    shellStream.WriteLine(password);
-                    prompt = shellStream.Expect(new Regex(@"[$#>]"));
+                    ShellStream.WriteLine(password);
+                    prompt = ShellStream.Expect(new Regex(@"[$#>]"));
                     Console.WriteLine(prompt);
                 }
                 return true;
@@ -89,8 +94,8 @@ namespace ContainersXray
 
         private static void WriteStream(string cmd)
         {
-            shellStream.WriteLine(cmd + "; echo this-is-the-end");
-            while (shellStream.Length == 0)
+            ShellStream.WriteLine(cmd + "; echo this-is-the-end");
+            while (ShellStream.Length == 0)
             {
                 Thread.Sleep(500);
             }
@@ -101,7 +106,7 @@ namespace ContainersXray
             StringBuilder result = new StringBuilder();
 
             string line;
-            while ((line = shellStream.ReadLine()) != "this-is-the-end") {
+            while ((line = ShellStream.ReadLine()) != "this-is-the-end") {
                 if (line.EndsWith("this-is-the-end"))
                 {
                     continue;
@@ -124,9 +129,9 @@ namespace ContainersXray
             return answer;
         }
 
-        public static void ls(string path)
+        public static void Ls(string path)
         {
-            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbTempFile + ";connection=shared"))
             {
                 var collection = db.GetCollection<FileEntry>("file_entry");
                 
@@ -141,37 +146,37 @@ namespace ContainersXray
                     }
                     string[] strs = Regex.Split(l, "[ ]{1,}");
                     var fe = new FileEntry();
-                    fe.parentPath = path;
-                    fe.containerId = containerID;
-                    fe.path = path + "/" + strs[8];
+                    fe.ParentPath = path;
+                    fe.ContainerID = ContainerID;
+                    fe.Path = path + "/" + strs[8];
                     for(var i = 8; i < strs.Length; i++)
                     {
-                        fe.name += strs[i] + " ";
+                        fe.Name += strs[i] + " ";
                     }
-                    fe.name = fe.name.Trim();
-                    fe.size = strs[4];
-                    fe.updatedAt = strs[5] + "/" + strs[6] + " " + strs[7];
-                    fe.permission = strs[0];
-                    fe.owner = strs[2] + " : " + strs[3];
-                    if(!fe.path.EndsWith(".") && !fe.path.EndsWith(".."))
+                    fe.Name = fe.Name.Trim();
+                    fe.Size = strs[4];
+                    fe.UpdatedAt = strs[5] + "/" + strs[6] + " " + strs[7];
+                    fe.Permission = strs[0];
+                    fe.Owner = strs[2] + " : " + strs[3];
+                    if(!fe.Path.EndsWith(".") && !fe.Path.EndsWith(".."))
                     {
                         entries.Add(fe);
                     }
                 }
                 var delList = collection.Query()
-                    .Where(rec => rec.parentPath == path)
+                    .Where(rec => rec.ParentPath == path)
                     .ToList();
                 foreach(var delRec in delList)
                 {
-                    collection.Delete(delRec.id);
+                    collection.Delete(delRec.Id);
                 }
                 collection.InsertBulk(entries);
             }
         }
 
-        public static void lsRoot()
+        public static void LsRoot()
         {
-            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbTempFile + ";connection=shared"))
             {
                 var collection = db.GetCollection<FileEntry>("file_entry");
 
@@ -186,31 +191,117 @@ namespace ContainersXray
                     }
                     string[] strs = Regex.Split(l, "[ ]{1,}");
                     var fe = new FileEntry();
-                    fe.parentPath = null;
-                    fe.containerId = containerID;
-                    fe.path = "/" + strs[8];
+                    fe.ParentPath = null;
+                    fe.ContainerID = ContainerID;
+                    fe.Path = "/" + strs[8];
                     for (var i = 8; i < strs.Length; i++)
                     {
-                        fe.name += strs[i] + " ";
+                        fe.Name += strs[i] + " ";
                     }
-                    fe.name = fe.name.Trim();
-                    fe.size = strs[4];
-                    fe.updatedAt = strs[5] + "/" + strs[6] + " " + strs[7];
-                    fe.permission = strs[0];
-                    fe.owner = strs[2] + " : " + strs[3];
-                    if (!fe.path.EndsWith(".") && !fe.path.EndsWith(".."))
+                    fe.Name = fe.Name.Trim();
+                    fe.Size = strs[4];
+                    fe.UpdatedAt = strs[5] + "/" + strs[6] + " " + strs[7];
+                    fe.Permission = strs[0];
+                    fe.Owner = strs[2] + " : " + strs[3];
+                    if (!fe.Path.EndsWith(".") && !fe.Path.EndsWith(".."))
                     {
                         entries.Add(fe);
                     }
                 }
                 var delList = collection.Query()
-                    .Where(rec => rec.parentPath == null)
+                    .Where(rec => rec.ParentPath == null)
                     .ToList();
                 foreach (var delRec in delList)
                 {
-                    collection.Delete(delRec.id);
+                    collection.Delete(delRec.Id);
                 }
                 collection.InsertBulk(entries);
+            }
+        }
+
+        public static List<string> GetHostList()
+        {
+            var ret = new List<string>();
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbPersistentFile + ";connection=shared"))
+            {
+                var collection = db.GetCollection<HostEntry>("Host");
+                var hostList = collection.Query().ToList();
+                foreach(var host in hostList)
+                {
+                    ret.Add(host.Host);
+                }
+                ret.Sort();
+            }
+            return ret;
+        }
+
+        public static void SaveHost(string host)
+        {
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbPersistentFile + ";connection=shared"))
+            {
+                var collection = db.GetCollection<HostEntry>("Host");
+                bool exists = collection.Query()
+                    .Where(rec => rec.Host == host)
+                    .Exists();
+                if (!exists)
+                {
+                    HostEntry he = new HostEntry();
+                    he.Host = host;
+                    collection.Insert(he);
+                }
+            }
+        }
+
+        public static List<string> GetUserList(string host)
+        {
+            var ret = new List<string>();
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbPersistentFile + ";connection=shared"))
+            {
+                var collection = db.GetCollection<UserPasswdEntry>("UserPasswd");
+                var userList = collection.Query()
+                    .Where(rec => rec.Host == host)
+                    .ToList();
+                foreach(var usr in userList)
+                {
+                    ret.Add(usr.User);
+                }
+                ret.Sort();
+            }
+            return ret;
+        }
+
+        public static string GetPasswd(string host, string user)
+        {
+            var ake = AESCryption.GetAESKeyEntry();
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbPersistentFile + ";connection=shared"))
+            {
+                var collection = db.GetCollection<UserPasswdEntry>("UserPasswd");
+                var passwd = collection.Query()
+                    .Where(rec => rec.Host == host && rec.User == user)
+                    .Single()
+                    .Password;
+                return AESCryption.Decrypt(passwd, ake.IV, ake.Key);
+            }
+        }
+
+        public static void SaveUserPasswd(string host, string user, string passwd)
+        {
+            var ake = AESCryption.GetAESKeyEntry();
+            var encrypted = AESCryption.Encrypt(passwd, ake.IV, ake.Key);
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbPersistentFile + ";connection=shared"))
+            {
+                var collection = db.GetCollection<UserPasswdEntry>("UserPasswd");
+                bool exists = collection.Query()
+                    .Where(rec => rec.Host == host && rec.User == user && rec.Password == encrypted)
+                    .Exists();
+                if (!exists)
+                {
+                    var upe = new UserPasswdEntry();
+                    upe.Host = host;
+                    upe.User = user;
+                    upe.Password = encrypted;
+                    collection.Insert(upe);
+                }
             }
         }
     }

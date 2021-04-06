@@ -25,36 +25,40 @@
                     <ColumnDefinition/>
                     <ColumnDefinition/>
                     <ColumnDefinition/>
+                    <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid Grid.Column="0">
-                    <Image x:Name="download" Source="/resource/arrow-download-icon.png" Width="26" Height="26" ToolTip="ダウンロード" />
+                    <Image x:Name="Download" Source="/resource/arrow-download-icon.png" Width="26" Height="26" ToolTip="ダウンロード" />
                 </Grid>
                 <Grid Grid.Column="1">
-                    <Image x:Name="upload" Source="/resource/arrow-upload-icon.png" Width="26" Height="26" ToolTip="アップロード" />
+                    <Image x:Name="Upload" Source="/resource/arrow-upload-icon.png" Width="26" Height="26" ToolTip="アップロード" />
                 </Grid>
                 <Grid Grid.Column="2">
-                    <Image x:Name="refresh" Source="/resource/arrow-refresh-2-icon.png" Width="26" Height="26" MouseUp="refresh_MouseUp" ToolTip="リフレッシュ" />
+                    <Image x:Name="Refresh" Source="/resource/arrow-refresh-2-icon.png" Width="26" Height="26" MouseUp="Refresh_MouseUp" ToolTip="リフレッシュ" />
                 </Grid>
                 <Grid Grid.Column="3">
-                    <Image x:Name="up" Source="/resource/arrow-up-icon.png" Width="26" Height="26" MouseUp="up_MouseUp" ToolTip="一つ上のフォルダへ" />
+                    <Image x:Name="Up" Source="/resource/arrow-up-icon.png" Width="26" Height="26" MouseUp="Up_MouseUp" ToolTip="一つ上のフォルダへ" />
                 </Grid>
                 <Grid Grid.Column="4">
-                    <Image x:Name="outside" Source="/resource/outside-icon.png" Width="26" Height="26" ToolTip="新しいウィンドウを表示" MouseUp="outside_MouseUp" />
+                    <Image x:Name="Outside" Source="/resource/outside-icon.png" Width="26" Height="26" ToolTip="新しいウィンドウを表示" MouseUp="Outside_MouseUp" />
+                </Grid>
+                <Grid Grid.Column="5">
+                    <Image x:Name="SwitchUser" Source="/resource/contacts-icon.png" Width="26" Height="26" ToolTip="ユーザーの切り替え"/>
                 </Grid>
             </Grid>
             <Grid Grid.Row="1">
-                <TreeView x:Name="dirTree">
+                <TreeView x:Name="DirTree">
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="{x:Type TreeViewItem}">
-                            <EventSetter Event="MouseLeftButtonUp" Handler="dirTree_MouseLeftButtonUp"/>
+                            <EventSetter Event="MouseLeftButtonUp" Handler="DirTree_MouseLeftButtonUp"/>
                             <Setter Property="IsExpanded" Value="True"/>
                         </Style>
                     </TreeView.ItemContainerStyle>
                     <TreeView.ItemTemplate>
-                        <HierarchicalDataTemplate DataType="local:Dto" ItemsSource="{Binding dirs}">
+                        <HierarchicalDataTemplate DataType="local:Dto" ItemsSource="{Binding Dirs}">
                             <StackPanel Orientation="Horizontal">
-                                <Image Source="{Binding icon}" />
-                                <TextBlock Text="{Binding name}" Margin="5,0,0,0"/>
+                                <Image Source="{Binding Icon}" />
+                                <TextBlock Text="{Binding Name}" Margin="5,0,0,0"/>
                             </StackPanel>
                         </HierarchicalDataTemplate>
                     </TreeView.ItemTemplate>
@@ -68,10 +72,10 @@
                 <RowDefinition />
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <TextBox x:Name="path" VerticalContentAlignment="Center" />
+                <TextBox x:Name="Path" VerticalContentAlignment="Center" />
             </Grid>
             <Grid Grid.Row="1">
-                <ListView x:Name="fileList" ItemsSource="{Binding Mode=OneWay}" MouseDoubleClick="fileList_MouseDoubleClick">
+                <ListView x:Name="FileList" ItemsSource="{Binding Mode=OneWay}" MouseDoubleClick="FileList_MouseDoubleClick">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -87,47 +91,47 @@
                             <GridViewColumn Width="30" >
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate >
-                                        <Image Source="{Binding icon}"></Image>
+                                        <Image Source="{Binding Icon}"></Image>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="580" >
-                                <GridViewColumnHeader Tag="fileName" Click="GridViewColumnHeader_Click">名前</GridViewColumnHeader>
+                                <GridViewColumnHeader Tag="FileName" Click="GridViewColumnHeader_Click">名前</GridViewColumnHeader>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate >
-                                        <TextBlock Text="{Binding fileName}"></TextBlock>
+                                        <TextBlock Text="{Binding FileName}"></TextBlock>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="120" FrameworkElement.FlowDirection="RightToLeft" >
-                                <GridViewColumnHeader Tag="size" Click="GridViewColumnHeader_Click">サイズ</GridViewColumnHeader>
+                                <GridViewColumnHeader Tag="Size" Click="GridViewColumnHeader_Click">サイズ</GridViewColumnHeader>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding size}"></TextBlock>
+                                        <TextBlock Text="{Binding Size}"></TextBlock>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="150" >
-                                <GridViewColumnHeader Tag="updatedAt" Click="GridViewColumnHeader_Click">更新日時</GridViewColumnHeader>
+                                <GridViewColumnHeader Tag="UpdatedAt" Click="GridViewColumnHeader_Click">更新日時</GridViewColumnHeader>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding updatedAt}"></TextBlock>
+                                        <TextBlock Text="{Binding UpdatedAt}"></TextBlock>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="100" >
-                                <GridViewColumnHeader Tag="permission" Click="GridViewColumnHeader_Click">パーミッション</GridViewColumnHeader>
+                                <GridViewColumnHeader Tag="Permission" Click="GridViewColumnHeader_Click">パーミッション</GridViewColumnHeader>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding permission}"></TextBlock>
+                                        <TextBlock Text="{Binding Permission}"></TextBlock>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
                             <GridViewColumn Width="100" >
-                                <GridViewColumnHeader Tag="owner" Click="GridViewColumnHeader_Click">所有者</GridViewColumnHeader>
+                                <GridViewColumnHeader Tag="Owner" Click="GridViewColumnHeader_Click">所有者</GridViewColumnHeader>
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding owner}"></TextBlock>
+                                        <TextBlock Text="{Binding Owner}"></TextBlock>
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>

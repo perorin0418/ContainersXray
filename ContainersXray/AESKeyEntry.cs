@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace ContainersXray
 {
-    class ContainerRecord
+    class AESKeyEntry
     {
-        public string ContainerName { get; set; }
-        public string Image { get; set; }
-        public string ContainerID { get; set; }
+        public int Id { get; set; }
+        public string IV { get; set; }
+        public string Key { get; set; }
     }
 }

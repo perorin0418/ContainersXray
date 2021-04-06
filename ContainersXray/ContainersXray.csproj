@@ -105,8 +105,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AESCryption.cs" />
+    <Compile Include="AESKeyEntry.cs" />
     <Compile Include="FileEntry.cs" />
+    <Compile Include="HostEntry.cs" />
     <Compile Include="SshTerminal.cs" />
+    <Compile Include="UserPasswdEntry.cs" />
     <Page Include="LoginDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -159,6 +163,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="resource\contacts-icon.png" />
     <Resource Include="resource\arrow-download-icon.png" />
     <Resource Include="resource\arrow-refresh-2-icon.png" />
     <Resource Include="resource\arrow-up-icon.png" />

@@ -29,33 +29,33 @@ namespace ContainersXray
     /// </summary>
     public partial class MainWindow : Window
     {
-        public Boolean isConnected { get; set; }
-        private string currentPath { get; set; }
-        private ObservableCollection<ExplorerRecord> eRecords { get; set; }
-        private ObservableCollection<DirTreeRecord> dRecords { get; set; }
+        public Boolean IsConnected { get; set; }
+        private string CurrentPath { get; set; }
+        private ObservableCollection<ExplorerRecord> ERecords { get; set; }
+        private ObservableCollection<DirTreeRecord> DRecords { get; set; }
         
         public MainWindow()
         {
             InitializeComponent();
-            this.eRecords = new ObservableCollection<ExplorerRecord>();
-            this.dRecords = new ObservableCollection<DirTreeRecord>();
-            fileList.DataContext = this.eRecords;
-            dirTree.ItemsSource = this.dRecords;
+            this.ERecords = new ObservableCollection<ExplorerRecord>();
+            this.DRecords = new ObservableCollection<DirTreeRecord>();
+            FileList.DataContext = this.ERecords;
+            DirTree.ItemsSource = this.DRecords;
         }
 
         private void Window_Activated(object sender, EventArgs e)
         {
-            if(!isConnected)
+            if(!IsConnected)
             {
                 LoginDialog ld = new LoginDialog(this);
                 ld.Owner = this;
                 ld.ShowDialog();
-                if (isConnected)
+                if (IsConnected)
                 {
-                    SshTerminal.lsRoot();
-                    currentPath = "/";
-                    refreshExplorer();
-                    refreshTree();
+                    SshTerminal.LsRoot();
+                    CurrentPath = "/";
+                    RefreshExplorer();
+                    RefreshTree();
                 }
                 else
                 {
@@ -66,72 +66,72 @@ namespace ContainersXray
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (isConnected)
+            if (IsConnected)
             {
-                SshTerminal.logout();
+                SshTerminal.Logout();
                 Console.WriteLine("Disconnected");
             }
         }
 
-        private void refreshExplorer()
+        private void RefreshExplorer()
         {
-            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbTempFile + ";connection=shared"))
             {
-                path.Text = currentPath;
-                eRecords.Clear();
+                Path.Text = CurrentPath;
+                ERecords.Clear();
                 var collection = db.GetCollection<FileEntry>("file_entry");
-                string parentPath = currentPath == "/" ? null : currentPath;
+                string parentPath = CurrentPath == "/" ? null : CurrentPath;
                 var feList = collection.Query()
-                    .Where(rec => rec.containerId == SshTerminal.containerID && rec.parentPath == parentPath)
+                    .Where(rec => rec.ContainerID == SshTerminal.ContainerID && rec.ParentPath == parentPath)
                     .ToList();
                 foreach (var fe in feList)
                 {
                     var er = new ExplorerRecord();
-                    er.path = fe.path;
-                    er.fileName = fe.name;
-                    er.size = fe.size;
-                    er.updatedAt = fe.updatedAt;
-                    er.permission = fe.permission;
-                    er.owner = fe.owner;
-                    eRecords.Add(er);
+                    er.Path = fe.Path;
+                    er.FileName = fe.Name;
+                    er.Size = fe.Size;
+                    er.UpdatedAt = fe.UpdatedAt;
+                    er.Permission = fe.Permission;
+                    er.Owner = fe.Owner;
+                    ERecords.Add(er);
                 }
             }
         }
 
-        private void refreshTree()
+        private void RefreshTree()
         {
-            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbTempFile + ";connection=shared"))
             {
-                dRecords.Clear();
+                DRecords.Clear();
                 var collection = db.GetCollection<FileEntry>("file_entry");
                 var feList = collection.Query()
-                    .Where(rec => rec.containerId == SshTerminal.containerID
-                        && rec.parentPath == null
-                        && rec.permission.StartsWith("d"))
+                    .Where(rec => rec.ContainerID == SshTerminal.ContainerID
+                        && rec.ParentPath == null
+                        && rec.Permission.StartsWith("d"))
                     .ToList();
                 foreach (var fe in feList)
                 {
-                    dRecords.Add(createTree(fe.path));
+                    DRecords.Add(CreateTree(fe.Path));
                 }
             }
         }
 
-        private DirTreeRecord createTree(string path)
+        private DirTreeRecord CreateTree(string path)
         {
             var dirTreeRecord = new DirTreeRecord();
-            dirTreeRecord.path = path;
-            dirTreeRecord.name = path.Split('/')[path.Split('/').Length - 1];
-            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            dirTreeRecord.Path = path;
+            dirTreeRecord.Name = path.Split('/')[path.Split('/').Length - 1];
+            using (LiteDatabase db = new LiteDatabase("Filename=" + SshTerminal.DbTempFile + ";connection=shared"))
             {
                 var collection = db.GetCollection<FileEntry>("file_entry");
                 var feList = collection.Query()
-                    .Where(rec => rec.containerId == SshTerminal.containerID
-                        && rec.parentPath == path
-                        && rec.permission.StartsWith("d"))
+                    .Where(rec => rec.ContainerID == SshTerminal.ContainerID
+                        && rec.ParentPath == path
+                        && rec.Permission.StartsWith("d"))
                     .ToList();
                 foreach (var fe in feList)
                 {
-                    dirTreeRecord.dirs.Add(createTree(fe.path));
+                    dirTreeRecord.Dirs.Add(CreateTree(fe.Path));
                 }
             }
             return dirTreeRecord;
@@ -140,7 +140,7 @@ namespace ContainersXray
         private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
         {
             GridViewColumnHeader columnHeader = sender as GridViewColumnHeader;
-            this.SortListView(fileList, columnHeader.Tag as String);
+            this.SortListView(FileList, columnHeader.Tag as String);
         }
 
         private void SortListView(ListView listView, String tag)
@@ -174,51 +174,51 @@ namespace ContainersXray
             listView.Items.SortDescriptions.Add(sortDescription);
         }
 
-        private void fileList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void FileList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            ExplorerRecord targetItem = (ExplorerRecord)fileList.SelectedItem;
-            if (targetItem.permission.StartsWith("d"))
+            ExplorerRecord targetItem = (ExplorerRecord)FileList.SelectedItem;
+            if (targetItem.Permission.StartsWith("d"))
             {
-                SshTerminal.ls(targetItem.path);
-                currentPath = targetItem.path;
-                refreshExplorer();
-                refreshTree();
+                SshTerminal.Ls(targetItem.Path);
+                CurrentPath = targetItem.Path;
+                RefreshExplorer();
+                RefreshTree();
             }
         }
 
-        private void dirTree_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void DirTree_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            DirTreeRecord targetItem = (DirTreeRecord)dirTree.SelectedItem;
-            if(targetItem == null || currentPath == targetItem.path)
+            DirTreeRecord targetItem = (DirTreeRecord)DirTree.SelectedItem;
+            if(targetItem == null || CurrentPath == targetItem.Path)
             {
                 return;
             }
-            currentPath = targetItem.path;
-            SshTerminal.ls(currentPath);
-            refreshExplorer();
-            refreshTree();
+            CurrentPath = targetItem.Path;
+            SshTerminal.Ls(CurrentPath);
+            RefreshExplorer();
+            RefreshTree();
         }
 
-        private void up_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Up_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            currentPath = currentPath.Substring(0, currentPath.LastIndexOf('/'));
-            if(currentPath == "")
+            CurrentPath = CurrentPath.Substring(0, CurrentPath.LastIndexOf('/'));
+            if(CurrentPath == "")
             {
-                currentPath = "/";
+                CurrentPath = "/";
             }
-            SshTerminal.ls(currentPath);
-            refreshExplorer();
-            refreshTree();
+            SshTerminal.Ls(CurrentPath);
+            RefreshExplorer();
+            RefreshTree();
         }
 
-        private void refresh_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Refresh_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            SshTerminal.ls(currentPath);
-            refreshExplorer();
-            refreshTree();
+            SshTerminal.Ls(CurrentPath);
+            RefreshExplorer();
+            RefreshTree();
         }
 
-        private void outside_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Outside_MouseUp(object sender, MouseButtonEventArgs e)
         {
             Console.WriteLine(System.Environment.CurrentDirectory);
             ProcessStartInfo pInfo = new ProcessStartInfo();

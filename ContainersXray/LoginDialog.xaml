@@ -9,23 +9,24 @@
         Style="{StaticResource wnd-metro}" Icon="icon.ico" Topmost="True" WindowStartupLocation="CenterOwner" Loaded="Window_Loaded">
     <Grid>
         <Label Content="ホスト" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="27"/>
-        <ComboBox x:Name="hostName" Margin="104,10,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center"/>
+        <ComboBox x:Name="HostName" Margin="104,10,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center" LostFocus="HostName_LostFocus"/>
         <Label Content="ログインユーザー" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" Height="26"/>
-        <ComboBox x:Name="loginUserName" Margin="104,41,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center" LostFocus="loginUserName_LostFocus"/>
+        <ComboBox x:Name="LoginUserName" Margin="104,41,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center" LostFocus="LoginUserName_LostFocus"/>
         <Label Content="ログインパスワード" HorizontalAlignment="Left" Margin="10,73,0,0" VerticalAlignment="Top" Height="26"/>
-        <PasswordBox x:Name="loginPassword" Margin="104,72,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="loginPassword_PreviewKeyDown" GotFocus="loginPassword_GotFocus" LostFocus="loginPassword_LostFocus"/>
+        <PasswordBox x:Name="LoginPassword" Margin="104,72,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="LoginPassword_PreviewKeyDown" GotFocus="LoginPassword_GotFocus" LostFocus="LoginPassword_LostFocus"/>
         <Label Content="実行ユーザー" HorizontalAlignment="Left" Margin="10,104,0,0" VerticalAlignment="Top" Height="26"/>
-        <ComboBox x:Name="execUserName" Margin="104,104,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center"/>
+        <ComboBox x:Name="ExecUserName" Margin="104,104,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center" LostFocus="ExecUserName_LostFocus"/>
         <Label Content="実行パスワード" HorizontalAlignment="Left" Margin="10,135,0,0" VerticalAlignment="Top" Width="89" Height="26"/>
-        <PasswordBox x:Name="execPassword" Margin="104,135,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="execPassword_PreviewKeyDown" GotFocus="execPassword_GotFocus"/>
-        <Button x:Name="login" Content="ログイン" Margin="0,166,10,0" VerticalAlignment="Top" Height="27" HorizontalAlignment="Right" Width="75" Click="login_Click"/>
+        <PasswordBox x:Name="ExecPassword" Margin="104,135,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="ExecPassword_PreviewKeyDown" GotFocus="ExecPassword_GotFocus"/>
+        <CheckBox x:Name="UserPasswdSave" Content="ユーザーとパスワードを保存" HorizontalAlignment="Left" Margin="161,173,0,0" VerticalAlignment="Top" IsChecked="True"/>
+        <Button x:Name="Login" Content="ログイン" Margin="0,166,10,0" VerticalAlignment="Top" Height="27" HorizontalAlignment="Right" Width="75" Click="Login_Click"/>
         <Rectangle Fill="#FFB4B4B4" Height="1" Margin="0,201,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="ContainerRuntime" Margin="0,207,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="191" SelectedIndex="0">
+        <ComboBox x:Name="ContainerRuntime" Margin="0,208,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="191" SelectedIndex="0">
             <ComboBoxItem Content="Docker"/>
             <ComboBoxItem Content="Containerd [Not Implemented]"/>
             <ComboBoxItem Content="CRI-O [Not Implemented]"/>
         </ComboBox>
-        <ListView x:Name="containerList" ItemsSource="{Binding Mode=OneWay}" Margin="10,234,10,42" PreviewKeyDown="containerList_PreviewKeyDown" Height="140">
+        <ListView x:Name="ContainerList" ItemsSource="{Binding Mode=OneWay}" Margin="10,234,10,42" PreviewKeyDown="ContainerList_PreviewKeyDown" Height="140">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -41,27 +42,27 @@
                     <GridViewColumn Header="コンテナ名" Width="120" >
                         <GridViewColumn.CellTemplate>
                             <DataTemplate >
-                                <TextBlock Text="{Binding containerName}"></TextBlock>
+                                <TextBlock Text="{Binding ContainerName}"></TextBlock>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
                     <GridViewColumn Header="イメージ" Width="120" >
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding image}"></TextBlock>
+                                <TextBlock Text="{Binding Image}"></TextBlock>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
                     <GridViewColumn Header="コンテナID" Width="100" >
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding containerID}"></TextBlock>
+                                <TextBlock Text="{Binding ContainerID}"></TextBlock>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
                 </GridView>
             </ListView.View>
         </ListView>
-        <Button x:Name="ok" Content="OK" Margin="0,0,10,10" HorizontalAlignment="Right" Width="75" Height="27" VerticalAlignment="Bottom" Click="ok_Click"/>
+        <Button x:Name="Ok" Content="OK" Margin="0,0,10,10" HorizontalAlignment="Right" Width="75" Height="27" VerticalAlignment="Bottom" Click="Ok_Click"/>
     </Grid>
 </Window>

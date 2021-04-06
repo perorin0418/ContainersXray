@@ -23,40 +23,49 @@ namespace ContainersXray
     /// </summary>
     public partial class LoginDialog : Window
     {
-        private MainWindow mainWindow;
+        private MainWindow MainWindow;
         private ObservableCollection<ContainerRecord> Records { get; set; }
-        private Stopwatch sw = new System.Diagnostics.Stopwatch();
 
         public LoginDialog(MainWindow mainWindow)
         {
             InitializeComponent();
-            this.mainWindow = mainWindow;
+            this.MainWindow = mainWindow;
             this.Records = new ObservableCollection<ContainerRecord>();
-            containerList.DataContext = this.Records;
-            containerList.SelectionMode = SelectionMode.Single;
+            ContainerList.DataContext = this.Records;
+            ContainerList.SelectionMode = SelectionMode.Single;
         }
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            hostName.Focus();
+            HostName.Focus();
+            foreach(var host in SshTerminal.GetHostList())
+            {
+                HostName.Items.Add(host);
+            }            
         }
 
-        private void login_Click(object sender, RoutedEventArgs e)
+        private void Login_Click(object sender, RoutedEventArgs e)
         {
-            SshTerminal.hostName = hostName.Text;
-            SshTerminal.loginUserName = loginUserName.Text;
-            SshTerminal.loginPassword = loginPassword.Password;
-            SshTerminal.execUserName = execUserName.Text;
-            SshTerminal.execPassword = execPassword.Password;
-            bool isConnected = SshTerminal.login();
+            SshTerminal.HostName = HostName.Text;
+            SshTerminal.LoginUserName = LoginUserName.Text;
+            SshTerminal.LoginPassword = LoginPassword.Password;
+            SshTerminal.ExecUserName = ExecUserName.Text;
+            SshTerminal.ExecPassword = ExecPassword.Password;
+            bool isConnected = SshTerminal.Login();
             if (isConnected)
             {
-                listContainers();
-                containerList.SelectedIndex = 0;
-                containerList.Focus();
+                ListContainers();
+                ContainerList.SelectedIndex = 0;
+                ContainerList.Focus();
+                if ((bool)UserPasswdSave.IsChecked)
+                {
+                    SshTerminal.SaveHost(SshTerminal.HostName);
+                    SshTerminal.SaveUserPasswd(SshTerminal.HostName, SshTerminal.LoginUserName, SshTerminal.LoginPassword);
+                    SshTerminal.SaveUserPasswd(SshTerminal.HostName, SshTerminal.ExecUserName, SshTerminal.ExecPassword);
+                }
             }
         }
 
-        private void listContainers()
+        private void ListContainers()
         {
             Records.Clear();
             string[] cmdretline = Regex.Split(SshTerminal.exec("docker container ls"), "\n");
@@ -71,71 +80,95 @@ namespace ContainersXray
                 Console.WriteLine(cmdret[0]);
                 Console.WriteLine(cmdret[1]);
                 Console.WriteLine(cmdret[cmdret.Length-1]);
-                Records.Add(new ContainerRecord { containerName = cmdret[cmdret.Length - 1], image = cmdret[1], containerID = cmdret[0] });
+                Records.Add(new ContainerRecord { ContainerName = cmdret[cmdret.Length - 1], Image = cmdret[1], ContainerID = cmdret[0] });
             }
         }
 
-        private void loginPassword_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void LoginPassword_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                loginPassword_LostFocus(null, null);
-                login_Click(null, null);
+                LoginPassword_LostFocus(null, null);
+                Login_Click(null, null);
             }
         }
 
-        private void execPassword_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void ExecPassword_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                login_Click(null, null);
+                Login_Click(null, null);
             }
         }
 
-        private void ok_Click(object sender, RoutedEventArgs e)
+        private void Ok_Click(object sender, RoutedEventArgs e)
         {
-            if(containerList.SelectedIndex >= 0)
+            if(ContainerList.SelectedIndex >= 0)
             {
-                mainWindow.isConnected = true;
-                SshTerminal.containerName = ((ContainerRecord)containerList.SelectedItem).containerName;
-                SshTerminal.containerID = ((ContainerRecord)containerList.SelectedItem).containerID;
-                SshTerminal.imageName = ((ContainerRecord)containerList.SelectedItem).image;
-                SshTerminal.containerLogin();
+                MainWindow.IsConnected = true;
+                SshTerminal.ContainerName = ((ContainerRecord)ContainerList.SelectedItem).ContainerName;
+                SshTerminal.ContainerID = ((ContainerRecord)ContainerList.SelectedItem).ContainerID;
+                SshTerminal.ImageName = ((ContainerRecord)ContainerList.SelectedItem).Image;
+                SshTerminal.ContainerLogin();
                 this.Close();
             }
         }
 
-        private void containerList_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void ContainerList_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                ok_Click(null, null);
+                Ok_Click(null, null);
             }
         }
 
-        private void loginPassword_GotFocus(object sender, RoutedEventArgs e)
+        private void LoginPassword_GotFocus(object sender, RoutedEventArgs e)
         {
-            loginPassword.SelectAll();
+            LoginPassword.SelectAll();
         }
 
-        private void execPassword_GotFocus(object sender, RoutedEventArgs e)
+        private void ExecPassword_GotFocus(object sender, RoutedEventArgs e)
         {
-            execPassword.SelectAll();
+            ExecPassword.SelectAll();
         }
 
-        private void loginPassword_LostFocus(object sender, RoutedEventArgs e)
+        private void LoginPassword_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(execPassword.Password))
+            if (string.IsNullOrEmpty(ExecPassword.Password))
             {
-                execPassword.Password = loginPassword.Password;
+                ExecPassword.Password = LoginPassword.Password;
             }
         }
 
-        private void loginUserName_LostFocus(object sender, RoutedEventArgs e)
+        private void LoginUserName_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(execUserName.Text))
+            if (string.IsNullOrEmpty(ExecUserName.Text))
             {
-                execUserName.Text = loginUserName.Text;
+                ExecUserName.Text = LoginUserName.Text;
+            }
+            if (!string.IsNullOrEmpty(LoginUserName.Text))
+            {
+                LoginPassword.Password = SshTerminal.GetPasswd(HostName.Text, LoginUserName.Text);
+            }
+        }
+
+        private void HostName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(HostName.Text))
+            {
+                foreach(var usr in SshTerminal.GetUserList(HostName.Text))
+                {
+                    LoginUserName.Items.Add(usr);
+                    ExecUserName.Items.Add(usr);
+                }
+            }
+        }
+
+        private void ExecUserName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(ExecUserName.Text))
+            {
+                ExecPassword.Password = SshTerminal.GetPasswd(HostName.Text, ExecUserName.Text);
             }
         }
     }
