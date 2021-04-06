@@ -23,6 +23,7 @@ namespace ContainersXray
                 }
             }
         }
+        public string path { get; set; }
         public string fileName { get; set; }
         public string size { get; set; }
         public string updatedAt { get; set; }

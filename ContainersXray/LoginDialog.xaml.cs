@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace ContainersXray
 {
@@ -39,46 +40,34 @@ namespace ContainersXray
             hostName.Focus();
         }
 
-        private async void login_Click(object sender, RoutedEventArgs e)
+        private void login_Click(object sender, RoutedEventArgs e)
         {
-            await Task.Run(() =>
+            SshTerminal.hostName = hostName.Text;
+            SshTerminal.loginUserName = loginUserName.Text;
+            SshTerminal.loginPassword = loginPassword.Password;
+            SshTerminal.execUserName = execUserName.Text;
+            SshTerminal.execPassword = execPassword.Password;
+            bool isConnected = SshTerminal.login();
+            if (isConnected)
             {
-                this.Dispatcher.Invoke((Action)(() =>
-                {
-                    login.Content = "処理中";
-                    mainWindow.hostName = hostName.Text;
-                    mainWindow.userName = userName.Text;
-                    mainWindow.password = password.Password;
-                }));
-                Boolean isConnected = mainWindow.connect();
-                this.Dispatcher.Invoke((Action)(() =>
-                {
-                    if (isConnected)
-                    {
-                        listContainers();
-                        containerList.SelectedIndex = 0;
-                        containerList.Focus();
-                    }
-                    login.Content = "ログイン";
-                }));
-            });
+                listContainers();
+                containerList.SelectedIndex = 0;
+                containerList.Focus();
+            }
         }
 
         private void listContainers()
         {
             Records.Clear();
-            sw.Restart();
-            string[] cmdretline = Regex.Split(mainWindow.client.CreateCommand("docker container ls").Execute(), "\n");
-            sw.Stop();
-            TimeSpan ts = sw.Elapsed;
-            Console.WriteLine($"コマンド実行にかかった時間 {ts.Hours}時間 {ts.Minutes}分 {ts.Seconds}秒 {ts.Milliseconds}ミリ秒");
+            string[] cmdretline = Regex.Split(SshTerminal.exec("docker container ls"), "\n");
             foreach (var line in cmdretline)
             {
-                if (line.StartsWith("CONTAINER") || string.IsNullOrEmpty(line))
+                var l = Regex.Replace(line, "\r", "");
+                if (l.StartsWith("CONTAINER") || string.IsNullOrEmpty(l))
                 {
                     continue;
                 }
-                string[] cmdret = Regex.Split(line, "[ ]{1,}");
+                string[] cmdret = Regex.Split(l, "[ ]{1,}");
                 Console.WriteLine(cmdret[0]);
                 Console.WriteLine(cmdret[1]);
                 Console.WriteLine(cmdret[cmdret.Length-1]);
@@ -86,7 +75,16 @@ namespace ContainersXray
             }
         }
 
-        private void Password_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void loginPassword_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                loginPassword_LostFocus(null, null);
+                login_Click(null, null);
+            }
+        }
+
+        private void execPassword_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
@@ -99,8 +97,10 @@ namespace ContainersXray
             if(containerList.SelectedIndex >= 0)
             {
                 mainWindow.isConnected = true;
-                mainWindow.containerName = ((ContainerRecord)containerList.SelectedItem).containerName;
-                mainWindow.containerID = ((ContainerRecord)containerList.SelectedItem).containerID;
+                SshTerminal.containerName = ((ContainerRecord)containerList.SelectedItem).containerName;
+                SshTerminal.containerID = ((ContainerRecord)containerList.SelectedItem).containerID;
+                SshTerminal.imageName = ((ContainerRecord)containerList.SelectedItem).image;
+                SshTerminal.containerLogin();
                 this.Close();
             }
         }
@@ -110,6 +110,32 @@ namespace ContainersXray
             if (e.Key == Key.Enter)
             {
                 ok_Click(null, null);
+            }
+        }
+
+        private void loginPassword_GotFocus(object sender, RoutedEventArgs e)
+        {
+            loginPassword.SelectAll();
+        }
+
+        private void execPassword_GotFocus(object sender, RoutedEventArgs e)
+        {
+            execPassword.SelectAll();
+        }
+
+        private void loginPassword_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(execPassword.Password))
+            {
+                execPassword.Password = loginPassword.Password;
+            }
+        }
+
+        private void loginUserName_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(execUserName.Text))
+            {
+                execUserName.Text = loginUserName.Text;
             }
         }
     }

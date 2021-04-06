@@ -1,4 +1,5 @@
-﻿using Renci.SshNet;
+﻿using LiteDB;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,19 +29,11 @@ namespace ContainersXray
     /// </summary>
     public partial class MainWindow : Window
     {
-        public string hostName { get; set; }
-        public string userName { get; set; }
-        public string password { get; set; }
-        public string containerID { get; set; }
-        public string containerName { get; set; }
-        private DirTreeRecord rootDir { get; set; }
-        private DirTreeRecord currentDir { get; set; }
-        public SshClient client { get; set; }
         public Boolean isConnected { get; set; }
+        private string currentPath { get; set; }
         private ObservableCollection<ExplorerRecord> eRecords { get; set; }
         private ObservableCollection<DirTreeRecord> dRecords { get; set; }
-        private Stopwatch sw = new System.Diagnostics.Stopwatch();
-
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -57,127 +50,91 @@ namespace ContainersXray
                 LoginDialog ld = new LoginDialog(this);
                 ld.Owner = this;
                 ld.ShowDialog();
-                refreshDir(null, "/");
+                if (isConnected)
+                {
+                    SshTerminal.lsRoot();
+                    currentPath = "/";
+                    refreshExplorer();
+                    refreshTree();
+                }
+                else
+                {
+                    this.Close();
+                }
             }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (client != null && client.IsConnected)
+            if (isConnected)
             {
-                client.Disconnect();
+                SshTerminal.logout();
                 Console.WriteLine("Disconnected");
             }
         }
 
-        public Boolean connect()
+        private void refreshExplorer()
         {
-            try
+            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
             {
-                client = new SshClient(hostName, userName, password);
-                client.Connect();
-            }catch(Exception e)
-            {
-                return false;
-            }
-
-            Console.WriteLine($"Connect: {client.IsConnected}");
-            return client.IsConnected;
-        }
-
-        private void refreshDir(DirTreeRecord parent, string dir)
-        {
-            refreshDir(parent, dir, true);
-        }
-
-        private void refreshDir(DirTreeRecord parent, string dir, Boolean addRec)
-        {
-            if (isConnected)
-            {
-                if(currentDir != null && string.IsNullOrEmpty(dir) && currentDir.getFullPath().Equals(parent.getDir(dir).getFullPath()))
-                {
-                    Console.WriteLine("skip");
-                    return;
-                }
+                path.Text = currentPath;
                 eRecords.Clear();
-                sw.Restart();
-                string[] cmdretline;
-                if(parent == null)
+                var collection = db.GetCollection<FileEntry>("file_entry");
+                string parentPath = currentPath == "/" ? null : currentPath;
+                var feList = collection.Query()
+                    .Where(rec => rec.containerId == SshTerminal.containerID && rec.parentPath == parentPath)
+                    .ToList();
+                foreach (var fe in feList)
                 {
-                    path.Text = dir;
-                    cmdretline = Regex.Split(client.CreateCommand("docker container exec " + containerName + " ls -la " + dir).Execute(), "\n");
-                }
-                else
-                {
-                    path.Text = parent.getFullPath() + "/" + dir;
-                    cmdretline = Regex.Split(client.CreateCommand("docker container exec " + containerName + " ls -la " + parent.getFullPath() + "/" + dir).Execute(), "\n");
-                }
-                sw.Stop();
-                TimeSpan ts = sw.Elapsed;
-                Console.WriteLine($"コマンド実行にかかった時間 {ts.Hours}時間 {ts.Minutes}分 {ts.Seconds}秒 {ts.Milliseconds}ミリ秒");
-                var dRecord = new DirTreeRecord();
-                dRecord.name = dir;
-                dRecord.parent = parent;
-                foreach (var line in cmdretline)
-                {
-                    if (line.StartsWith("合計") || line.StartsWith("total") || string.IsNullOrEmpty(line))
-                    {
-                        continue;
-                    }
-                    string[] cmdret = Regex.Split(line, "[ ]{1,}");
-                    var eRecord = new ExplorerRecord();
-                    eRecord.permission = cmdret[0];
-                    eRecord.owner = cmdret[2] + " : " + cmdret[3];
-                    if (eRecord.permission.StartsWith("d"))
-                    {
-                        eRecord.size = "";
-                    }
-                    else
-                    {
-                        eRecord.size = cmdret[4];
-                    }
-                    eRecord.updatedAt = cmdret[5] + " " + cmdret[6] + " " + cmdret[7];
-                    eRecord.fileName = cmdret[8];
-                    Console.WriteLine(line);
-                    if(!eRecord.fileName.Equals(".") && !eRecord.fileName.Equals(".."))
-                    {
-                        eRecords.Add(eRecord);
-                        if (eRecord.permission.StartsWith("d"))
-                        {
-                            if (addRec)
-                            {
-                                if(currentDir == null)
-                                {
-                                    var dBuf = new DirTreeRecord { parent = dRecord, name = eRecord.fileName };
-                                    dRecord.dirs.Add(dBuf);
-                                }
-                                else
-                                {
-                                    var dBuf = new DirTreeRecord { parent = currentDir.getDir(dir), name = eRecord.fileName };
-                                    currentDir.getDir(dir).dirs.Add(dBuf);
-                                }
-                            }
-                        }
-                    }
-                }
-                if (addRec)
-                {
-                    if (currentDir == null)
-                    {
-                        rootDir = dRecord;
-                        currentDir = dRecord;
-                        dRecords.Add(rootDir);
-                    }
-                    else
-                    {
-                        currentDir = currentDir.getDir(dir);
-                    }
-                }
-                else
-                {
-                    currentDir = parent;
+                    var er = new ExplorerRecord();
+                    er.path = fe.path;
+                    er.fileName = fe.name;
+                    er.size = fe.size;
+                    er.updatedAt = fe.updatedAt;
+                    er.permission = fe.permission;
+                    er.owner = fe.owner;
+                    eRecords.Add(er);
                 }
             }
+        }
+
+        private void refreshTree()
+        {
+            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            {
+                dRecords.Clear();
+                var collection = db.GetCollection<FileEntry>("file_entry");
+                var feList = collection.Query()
+                    .Where(rec => rec.containerId == SshTerminal.containerID
+                        && rec.parentPath == null
+                        && rec.permission.StartsWith("d"))
+                    .ToList();
+                foreach (var fe in feList)
+                {
+                    dRecords.Add(createTree(fe.path));
+                }
+            }
+        }
+
+        private DirTreeRecord createTree(string path)
+        {
+            var dirTreeRecord = new DirTreeRecord();
+            dirTreeRecord.path = path;
+            dirTreeRecord.name = path.Split('/')[path.Split('/').Length - 1];
+            using (LiteDatabase db = new LiteDatabase(@"Filename=ContainersXray.db;connection=shared"))
+            {
+                var collection = db.GetCollection<FileEntry>("file_entry");
+                var feList = collection.Query()
+                    .Where(rec => rec.containerId == SshTerminal.containerID
+                        && rec.parentPath == path
+                        && rec.permission.StartsWith("d"))
+                    .ToList();
+                foreach (var fe in feList)
+                {
+                    dirTreeRecord.dirs.Add(createTree(fe.path));
+                }
+            }
+            return dirTreeRecord;
         }
 
         private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
@@ -220,17 +177,53 @@ namespace ContainersXray
         private void fileList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             ExplorerRecord targetItem = (ExplorerRecord)fileList.SelectedItem;
-            Console.WriteLine(targetItem.fileName);
             if (targetItem.permission.StartsWith("d"))
             {
-                refreshDir(currentDir, targetItem.fileName);
+                SshTerminal.ls(targetItem.path);
+                currentPath = targetItem.path;
+                refreshExplorer();
+                refreshTree();
             }
         }
 
         private void dirTree_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            Console.WriteLine(((DirTreeRecord)dirTree.SelectedItem).getFullPath());
-            refreshDir(((DirTreeRecord)dirTree.SelectedItem).parent, ((DirTreeRecord)dirTree.SelectedItem).name);
+            DirTreeRecord targetItem = (DirTreeRecord)dirTree.SelectedItem;
+            if(targetItem == null || currentPath == targetItem.path)
+            {
+                return;
+            }
+            currentPath = targetItem.path;
+            SshTerminal.ls(currentPath);
+            refreshExplorer();
+            refreshTree();
+        }
+
+        private void up_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            currentPath = currentPath.Substring(0, currentPath.LastIndexOf('/'));
+            if(currentPath == "")
+            {
+                currentPath = "/";
+            }
+            SshTerminal.ls(currentPath);
+            refreshExplorer();
+            refreshTree();
+        }
+
+        private void refresh_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            SshTerminal.ls(currentPath);
+            refreshExplorer();
+            refreshTree();
+        }
+
+        private void outside_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            Console.WriteLine(System.Environment.CurrentDirectory);
+            ProcessStartInfo pInfo = new ProcessStartInfo();
+            pInfo.FileName = System.Environment.CurrentDirectory + @"\ContainersXray.exe";
+            Process.Start(pInfo);
         }
     }
 }

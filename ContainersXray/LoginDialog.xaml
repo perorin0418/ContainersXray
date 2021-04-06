@@ -8,20 +8,24 @@
         Title="ログイン" Height="450" Width="400"
         Style="{StaticResource wnd-metro}" Icon="icon.ico" Topmost="True" WindowStartupLocation="CenterOwner" Loaded="Window_Loaded">
     <Grid>
-        <Label x:Name="label" Content="ホスト" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="27"/>
-        <ComboBox x:Name="hostName" Margin="81,10,10,0" VerticalAlignment="Top" Height="26" IsEditable="True"/>
-        <Label x:Name="label_Copy" Content="ユーザー" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" Height="26"/>
-        <ComboBox x:Name="userName" Margin="81,41,10,0" VerticalAlignment="Top" Height="26" IsEditable="True"/>
-        <Label x:Name="label1" Content="パスワード" HorizontalAlignment="Left" Margin="10,73,0,0" VerticalAlignment="Top" Height="26"/>
-        <PasswordBox x:Name="password" Margin="81,72,10,0" VerticalAlignment="Top" Height="26" PreviewKeyDown="Password_PreviewKeyDown"/>
-        <Button x:Name="login" Content="ログイン" Margin="0,103,10,0" VerticalAlignment="Top" Height="27" HorizontalAlignment="Right" Width="75" Click="login_Click"/>
-        <Rectangle Fill="#FFB4B4B4" Height="1" Margin="0,139,0,0" VerticalAlignment="Top"/>
-        <ComboBox x:Name="ContainerRuntime" Margin="0,148,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="191" SelectedIndex="0">
+        <Label Content="ホスト" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="27"/>
+        <ComboBox x:Name="hostName" Margin="104,10,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center"/>
+        <Label Content="ログインユーザー" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" Height="26"/>
+        <ComboBox x:Name="loginUserName" Margin="104,41,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center" LostFocus="loginUserName_LostFocus"/>
+        <Label Content="ログインパスワード" HorizontalAlignment="Left" Margin="10,73,0,0" VerticalAlignment="Top" Height="26"/>
+        <PasswordBox x:Name="loginPassword" Margin="104,72,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="loginPassword_PreviewKeyDown" GotFocus="loginPassword_GotFocus" LostFocus="loginPassword_LostFocus"/>
+        <Label Content="実行ユーザー" HorizontalAlignment="Left" Margin="10,104,0,0" VerticalAlignment="Top" Height="26"/>
+        <ComboBox x:Name="execUserName" Margin="104,104,10,0" VerticalAlignment="Top" Height="26" IsEditable="True" VerticalContentAlignment="Center"/>
+        <Label Content="実行パスワード" HorizontalAlignment="Left" Margin="10,135,0,0" VerticalAlignment="Top" Width="89" Height="26"/>
+        <PasswordBox x:Name="execPassword" Margin="104,135,10,0" VerticalAlignment="Top" Height="26" VerticalContentAlignment="Center" PreviewKeyDown="execPassword_PreviewKeyDown" GotFocus="execPassword_GotFocus"/>
+        <Button x:Name="login" Content="ログイン" Margin="0,166,10,0" VerticalAlignment="Top" Height="27" HorizontalAlignment="Right" Width="75" Click="login_Click"/>
+        <Rectangle Fill="#FFB4B4B4" Height="1" Margin="0,201,0,0" VerticalAlignment="Top"/>
+        <ComboBox x:Name="ContainerRuntime" Margin="0,207,10,0" VerticalAlignment="Top" HorizontalAlignment="Right" Width="191" SelectedIndex="0">
             <ComboBoxItem Content="Docker"/>
             <ComboBoxItem Content="Containerd [Not Implemented]"/>
             <ComboBoxItem Content="CRI-O [Not Implemented]"/>
         </ComboBox>
-        <ListView x:Name="containerList" ItemsSource="{Binding Mode=OneWay}" Margin="10,175,10,49" PreviewKeyDown="containerList_PreviewKeyDown">
+        <ListView x:Name="containerList" ItemsSource="{Binding Mode=OneWay}" Margin="10,234,10,42" PreviewKeyDown="containerList_PreviewKeyDown" Height="140">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
